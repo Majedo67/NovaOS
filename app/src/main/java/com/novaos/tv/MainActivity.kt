@@ -6,29 +6,41 @@ import android.os.Bundle
 import android.graphics.Color
 import android.view.Gravity
 import android.view.View
-import android.widget.*
+import android.widget.Button
+import android.widget.LinearLayout
+import android.widget.TextView
 
 class MainActivity : Activity() {
 
+    private val backgroundColor = Color.rgb(5, 12, 30)
+    private val cyanColor = Color.rgb(0, 210, 255)
+    private val cardColor = Color.rgb(15, 55, 100)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.statusBarColor = Color.rgb(5, 12, 30)
-        window.navigationBarColor = Color.rgb(5, 12, 30)
+
+        window.statusBarColor = backgroundColor
+        window.navigationBarColor = backgroundColor
+
         setContentView(createHome())
     }
 
     private fun createHome(): View {
+
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(40, 30, 40, 30)
-            setBackgroundColor(Color.rgb(5, 12, 30))
+            setBackgroundColor(backgroundColor)
+            gravity = Gravity.TOP
         }
 
         val title = TextView(this).apply {
             text = "NOVAOS"
             textSize = 38f
-            setTextColor(Color.rgb(0, 210, 255))
+            setTextColor(cyanColor)
+            isFocusable = true
         }
+
         root.addView(title)
 
         val subtitle = TextView(this).apply {
@@ -36,6 +48,7 @@ class MainActivity : Activity() {
             textSize = 14f
             setTextColor(Color.WHITE)
         }
+
         root.addView(subtitle)
 
         val menu = LinearLayout(this).apply {
@@ -43,18 +56,24 @@ class MainActivity : Activity() {
             setPadding(0, 30, 0, 20)
         }
 
-        listOf("Games", "Apps", "Profiles", "Settings").forEach {
+        val menuItems = listOf(
+            "Games",
+            "Apps",
+            "Profiles",
+            "Settings"
+        )
+
+        menuItems.forEach { item ->
+
             val button = Button(this).apply {
-                text = it
+                text = item
                 isFocusable = true
+
                 setOnClickListener {
-                    Toast.makeText(
-                        this@MainActivity,
-                        "$it selected",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    subtitle.text = "NOVAOS  /  $item"
                 }
             }
+
             menu.addView(button)
         }
 
@@ -66,38 +85,47 @@ class MainActivity : Activity() {
             setTextColor(Color.WHITE)
             setPadding(0, 25, 0, 15)
         }
+
         root.addView(heading)
 
         val games = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
         }
 
-        listOf("GAME LIBRARY", "CONTINUE PLAYING", "DISCOVER").forEach {
+        val gameItems = listOf(
+            "GAME LIBRARY",
+            "CONTINUE PLAYING",
+            "DISCOVER"
+        )
+
+        gameItems.forEach { item ->
+
             val card = TextView(this).apply {
-                text = it
+                text = item
                 textSize = 18f
                 gravity = Gravity.CENTER
                 setTextColor(Color.WHITE)
-                setBackgroundColor(Color.rgb(15, 55, 100))
+                setBackgroundColor(cardColor)
                 setPadding(25, 35, 25, 35)
                 isFocusable = true
+
                 setOnClickListener {
-                    Toast.makeText(
-                        this@MainActivity,
-                        it,
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    heading.text = item
                 }
             }
 
             val params = LinearLayout.LayoutParams(
-                230, 130
+                230,
+                130
             )
+
             params.setMargins(0, 0, 20, 0)
+
             games.addView(card, params)
         }
 
         root.addView(games)
+
         return root
     }
 }
