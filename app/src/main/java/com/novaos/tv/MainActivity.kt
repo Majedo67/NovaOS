@@ -1,19 +1,17 @@
-
 package com.novaos.tv
 
 import android.app.Activity
 import android.app.AlertDialog
-import android.os.Bundle
 import android.content.Intent
 import android.content.pm.ResolveInfo
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.os.Bundle
 import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
 import android.widget.*
-import android.net.Uri
-import android.provider.Settings
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -21,26 +19,50 @@ import java.util.Locale
 class MainActivity : Activity() {
 
     private val bg = Color.rgb(7, 12, 25)
-    private val panel = Color.rgb(23, 34, 54)
-    private val blue = Color.rgb(65, 170, 255)
+    private val panel = Color.rgb(20, 29, 49)
+    private val blue = Color.rgb(35, 130, 255)
     private val white = Color.WHITE
-    private val grey = Color.rgb(180, 190, 210)
+    private val muted = Color.rgb(160, 175, 200)
 
+    private lateinit var root: LinearLayout
+    private lateinit var content: LinearLayout
     private lateinit var clock: TextView
+    private var currentPage = "Home"
+
+    data class TVApp(
+        val name: String,
+        val packageName: String,
+        val icon: android.graphics.drawable.Drawable,
+        val intent: Intent
+    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        window.statusBarColor = bg
-        window.navigationBarColor = bg
-
         showHome()
     }
 
-    private fun text(
+    private fun rounded(color: Int, radius: Float = 22f): GradientDrawable {
+        return GradientDrawable().apply {
+            setColor(color)
+            cornerRadius = radius
+        }
+    }
+
+    private fun gradient(): GradientDrawable {
+        return GradientDrawable(
+            GradientDrawable.Orientation.TL_BR,
+            intArrayOf(
+                Color.rgb(15, 75, 155),
+                Color.rgb(20, 35, 75),
+                Color.rgb(12, 18, 35)
+            )
+        ).apply { cornerRadius = 30f }
+    }
+
+    private fun makeText(
         value: String,
         size: Float,
-        color: Int,
+        color: Int = white,
         bold: Boolean = false
     ): TextView {
         return TextView(this).apply {
@@ -48,47 +70,32 @@ class MainActivity : Activity() {
             textSize = size
             setTextColor(color)
             if (bold) typeface = Typeface.DEFAULT_BOLD
-            setPadding(0, 5, 0, 5)
         }
     }
 
-    private fun background(color: Int): GradientDrawable {
-        return GradientDrawable().apply {
-            setColor(color)
-            cornerRadius = 22f
-        }
-    }
-
-    private fun makeCard(
-        title: String,
-        subtitle: String = "",
+    private fun makeButton(
+        label: String,
         action: () -> Unit
-    ): LinearLayout {
-
-        return LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(20, 12, 20, 12)
-            background = background(panel)
+    ): TextView {
+        return TextView(this).apply {
+            text = label
+            textSize = 17f
+            setTextColor(white)
+            gravity = Gravity.CENTER
+            setPadding(24, 14, 24, 14)
+            background = rounded(panel, 40f)
             isFocusable = true
             isClickable = true
 
-            addView(text(title, 18f, white, true))
-
-            if (subtitle.isNotEmpty()) {
-                addView(text(subtitle, 12f, grey))
-            }
-
             setOnFocusChangeListener { view, focused ->
                 view.animate()
-                    .scaleX(if (focused) 1.07f else 1f)
-                    .scaleY(if (focused) 1.07f else 1f)
-                    .setDuration(160)
+                    .scaleX(if (focused) 1.08f else 1f)
+                    .scaleY(if (focused) 1.08f else 1f)
+                    .setDuration(140)
                     .start()
 
-                view.background = background(
-                    if (focused) Color.rgb(35, 75, 120)
-                    else panel
+                setBackground(
+                    rounded(if (focused) blue else panel, 40f)
                 )
             }
 
@@ -96,194 +103,81 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun getApps(): List<ResolveInfo> {
-        val intent = Intent(Intent.ACTION_MAIN).apply {
-            addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER)
-        }
+    private fun setupPage(title: String) {
+        currentPage = title
 
-        return packageManager.queryIntentActivities(intent, 0)
-            .filter {
-                it.activityInfo.packageName != packageName
-            }
-            .distinctBy {
-                it.activityInfo.packageName
-            }
-            .sortedBy {
-                it.loadLabel(packageManager).toString()
-            }
-    }
-
-    private fun launchApp(app: ResolveInfo) {
-        val intent = packageManager.getLaunchIntentForPackage(
-            app.activityInfo.packageName
-        )
-
-        if (intent != null) {
-            startActivity(intent)
-        } else {
-            Toast.makeText(
-                this,
-                "App cannot be opened",
-                Toast.LENGTH_SHORT
-            ).show()
-        }
-    }
-
-    private fun showHome() {
-
-        val root = LinearLayout(this).apply {
+        root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(38, 20, 38, 20)
             setBackgroundColor(bg)
+            setPadding(38, 24, 38, 20)
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
         }
-
-        // TOP BAR
 
         val top = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
         }
 
-        top.addView(text("NOVA", 30f, blue, true))
-
-        val spacer = View(this)
         top.addView(
-            spacer,
-            LinearLayout.LayoutParams(0, 1, 1f)
+            makeText("NOVA", 29f, blue, true),
+            LinearLayout.LayoutParams(0, -2, 1f)
         )
 
-        clock = text("", 16f, grey)
-
+        clock = makeText("", 16f, muted)
         top.addView(clock)
+
         root.addView(top)
 
-        updateClock()
-
-        // NAVIGATION
-
-        val navigation = LinearLayout(this).apply {
+        val nav = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, 18, 0, 18)
         }
 
-        val navItems = listOf("Home", "Apps", "Games", "Settings")
-
-        navItems.forEach { item ->
-
-            val button = TextView(this).apply {
-                text = item
-                textSize = 16f
-                setTextColor(white)
-                setPadding(17, 14, 17, 14)
-                isFocusable = true
-                isClickable = true
-
-                setOnClickListener {
-                    when (item) {
-                        "Home" -> showHome()
-                        "Apps" -> showApps(false)
-                        "Games" -> showApps(true)
-                        "Settings" -> showSettings()
-                    }
+        listOf("Home", "Apps", "Games", "Settings").forEach { page ->
+            val button = makeButton(
+                if (page == currentPage) "●  $page" else page
+            ) {
+                when (page) {
+                    "Home" -> showHome()
+                    "Apps" -> showApps()
+                    "Games" -> showGames()
+                    "Settings" -> showSettings()
                 }
             }
 
-            navigation.addView(button)
+            val params = LinearLayout.LayoutParams(-2, -2)
+            params.marginEnd = 12
+            nav.addView(button, params)
         }
 
-        root.addView(navigation)
-
-        // MAIN CONTENT
+        root.addView(nav)
 
         val scroll = ScrollView(this).apply {
-            isVerticalScrollBarEnabled = false
-            isSmoothScrollingEnabled = true
+            isFillViewport = true
+            isFocusable = false
         }
 
-        val content = LinearLayout(this).apply {
+        content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
+            setPadding(0, 8, 0, 35)
         }
 
-        // HERO BANNER
-
-        val hero = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(35, 20, 35, 20)
-
-            background = GradientDrawable(
-                GradientDrawable.Orientation.TL_BR,
-                intArrayOf(
-                    Color.rgb(25, 100, 190),
-                    Color.rgb(18, 42, 90),
-                    Color.rgb(9, 16, 35)
-                )
-            ).apply {
-                cornerRadius = 28f
-            }
-        }
-
-        hero.addView(text("WELCOME TO", 15f, blue, true))
-
-        hero.addView(
-            text("NOVA TV", 40f, white, true)
-        )
-
-        hero.addView(
-            text(
-                "Your entertainment. Your world.",
-                17f,
-                grey
+        scroll.addView(content)
+        root.addView(
+            scroll,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                0,
+                1f
             )
         )
 
-        val explore = makeCard("Explore your apps") {
-            showApps(false)
-        }
-
-        hero.addView(
-            explore,
-            LinearLayout.LayoutParams(230, 75)
-        )
-
-        content.addView(
-            hero,
-            LinearLayout.LayoutParams(-1, 230).apply {
-                bottomMargin = 25
-            }
-        )
-
-        // APP ROW
-
-        addAppSection(content, "Your Apps", getApps())
-
-        // GAMES ROW
-
-        val games = getApps().filter {
-            val name = it.loadLabel(packageManager).toString()
-            name.contains("game", true)
-        }
-
-        addAppSection(content, "Games", games)
-
-        content.addView(
-            text(
-                "NOVA TV  •  VERSION 3.0",
-                12f,
-                grey
-            ).apply {
-                setPadding(0, 30, 0, 15)
-            }
-        )
-
-        scroll.addView(content)
-
-        root.addView(
-            scroll,
-            LinearLayout.LayoutParams(-1, 0, 1f)
-        )
-
         setContentView(root)
+        updateClock()
     }
 
     private fun updateClock() {
@@ -295,278 +189,301 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun addAppSection(
-        parent: LinearLayout,
-        title: String,
-        apps: List<ResolveInfo>
-    ) {
-
-        parent.addView(
-            text(title, 25f, white, true).apply {
-                setPadding(0, 12, 0, 12)
+    private fun addHeading(title: String, subtitle: String? = null) {
+        content.addView(
+            makeText(title, 25f, white, true).apply {
+                setPadding(0, 22, 0, 8)
             }
         )
 
-        val horizontal = HorizontalScrollView(this).apply {
-            isHorizontalScrollBarEnabled = false
-            isSmoothScrollingEnabled = true
+        if (subtitle != null) {
+            content.addView(
+                makeText(subtitle, 14f, muted).apply {
+                    setPadding(0, 0, 0, 12)
+                }
+            )
+        }
+    }
+
+    private fun getApps(): List<TVApp> {
+        val result = mutableListOf<TVApp>()
+
+        val leanback = Intent(Intent.ACTION_MAIN).apply {
+            addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER)
+        }
+
+        val normal = Intent(Intent.ACTION_MAIN).apply {
+            addCategory(Intent.CATEGORY_LAUNCHER)
+        }
+
+        val found = packageManager.queryIntentActivities(leanback, 0)
+        val all = if (found.isNotEmpty()) {
+            found
+        } else {
+            packageManager.queryIntentActivities(normal, 0)
+        }
+
+        val seen = mutableSetOf<String>()
+
+        for (info in all) {
+            try {
+                val packageName = info.activityInfo.packageName
+                if (packageName == packageNameOfSelf()) continue
+                if (!seen.add(packageName)) continue
+
+                val launch = packageManager.getLaunchIntentForPackage(packageName)
+                    ?: continue
+
+                result.add(
+                    TVApp(
+                        info.loadLabel(packageManager).toString(),
+                        packageName,
+                        info.loadIcon(packageManager),
+                        launch
+                    )
+                )
+            } catch (_: Exception) {
+            }
+        }
+
+        return result.sortedBy { it.name.lowercase(Locale.getDefault()) }
+    }
+
+    private fun packageNameOfSelf(): String = packageName
+
+    private fun launchApp(app: TVApp) {
+        try {
+            startActivity(app.intent)
+        } catch (_: Exception) {
+            Toast.makeText(this, "App could not be opened", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun addAppRow(apps: List<TVApp>) {
+        if (apps.isEmpty()) {
+            content.addView(
+                makeText("No compatible apps found.", 16f, muted)
+            )
+            return
         }
 
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
         }
 
         apps.forEach { app ->
-
             val card = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
                 gravity = Gravity.CENTER
-                background = background(panel)
-                setPadding(10, 10, 10, 10)
+                setPadding(12, 16, 12, 16)
+                background = rounded(panel)
                 isFocusable = true
                 isClickable = true
 
                 setOnFocusChangeListener { view, focused ->
-
                     view.animate()
-                        .scaleX(if (focused) 1.10f else 1f)
-                        .scaleY(if (focused) 1.10f else 1f)
-                        .setDuration(170)
+                        .scaleX(if (focused) 1.09f else 1f)
+                        .scaleY(if (focused) 1.09f else 1f)
+                        .setDuration(150)
                         .start()
 
-                    view.background = background(
-                        if (focused)
-                            Color.rgb(35, 75, 120)
-                        else panel
+                    background = rounded(
+                        if (focused) Color.rgb(35, 75, 130) else panel
                     )
                 }
 
-                setOnClickListener {
-                    launchApp(app)
-                }
+                setOnClickListener { launchApp(app) }
             }
 
             val icon = ImageView(this).apply {
-                setImageDrawable(app.loadIcon(packageManager))
+                setImageDrawable(app.icon)
                 scaleType = ImageView.ScaleType.FIT_CENTER
             }
 
+            card.addView(icon, LinearLayout.LayoutParams(76, 76))
             card.addView(
-                icon,
-                LinearLayout.LayoutParams(76, 76)
-            )
-
-            card.addView(
-                text(
-                    app.loadLabel(packageManager).toString(),
-                    13f,
-                    white,
-                    true
-                ).apply {
+                makeText(app.name, 13f, white, true).apply {
                     gravity = Gravity.CENTER
                     maxLines = 2
+                    setPadding(0, 10, 0, 0)
                 }
             )
 
-            row.addView(
-                card,
-                LinearLayout.LayoutParams(145, 140).apply {
-                    setMargins(7, 8, 12, 12)
-                }
-            )
+            val params = LinearLayout.LayoutParams(140, 145)
+            params.marginEnd = 16
+            row.addView(card, params)
         }
 
-        if (apps.isEmpty()) {
-            row.addView(
-                text("No apps found", 15f, grey)
-            )
-        }
-
-        horizontal.addView(row)
-
-        parent.addView(
-            horizontal,
-            LinearLayout.LayoutParams(-1, 165)
+        content.addView(
+            HorizontalScrollView(this).apply {
+                isHorizontalScrollBarEnabled = false
+                addView(row)
+            }
         )
     }
 
-    // APPS AND GAMES PAGE
+    private fun showHome() {
+        setupPage("Home")
 
-    private fun showApps(gamesOnly: Boolean) {
-
-        val root = LinearLayout(this).apply {
+        val hero = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_VERTICAL
             setPadding(35, 25, 35, 25)
-            setBackgroundColor(bg)
+            background = gradient()
+            minimumHeight = 220
         }
 
-        root.addView(
-            text(
-                if (gamesOnly) "Games" else "All Apps",
-                32f,
-                white,
-                true
+        hero.addView(makeText("WELCOME TO", 14f, Color.LTGRAY, true))
+        hero.addView(
+            makeText("NovaOS", 42f, white, true).apply {
+                setPadding(0, 6, 0, 8)
+            }
+        )
+        hero.addView(
+            makeText(
+                "Your entertainment. Your home.",
+                17f,
+                Color.rgb(220, 230, 255)
             )
         )
 
-        val back = makeCard("← Back to NovaOS") {
-            showHome()
-        }
-
-        root.addView(
-            back,
-            LinearLayout.LayoutParams(240, 75)
+        hero.addView(
+            makeButton("Explore your apps  →") {
+                showApps()
+            }.apply {
+                setBackgroundColor(blue)
+            },
+            LinearLayout.LayoutParams(-2, -2).apply {
+                topMargin = 22
+            }
         )
 
-        val scroll = ScrollView(this)
+        content.addView(hero)
 
-        val list = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
+        val apps = getApps()
+        addHeading("Continue watching", "Open an app from your TV")
+        addAppRow(apps.take(12))
+
+        addHeading("Your games")
+        val games = apps.filter {
+            it.name.contains("game", true)
         }
+        addAppRow(games)
 
-        val apps = getApps().filter { app ->
-
-            if (!gamesOnly) {
-                true
-            } else {
-                app.loadLabel(packageManager)
-                    .toString()
-                    .contains("game", true)
+        content.addView(
+            makeButton("Open Google TV Home") {
+                openGoogleTV()
+            }.apply {
+                setPadding(20, 20, 20, 20)
+            },
+            LinearLayout.LayoutParams(-1, -2).apply {
+                topMargin = 25
             }
+        )
+    }
+
+    private fun showApps() {
+        setupPage("Apps")
+        addHeading("All apps", "Installed apps available to launch")
+        addAppRow(getApps())
+    }
+
+    private fun showGames() {
+        setupPage("Games")
+        addHeading("Games", "Your installed games")
+
+        val games = getApps().filter {
+            it.name.contains("game", true)
         }
 
-        apps.forEach { app ->
+        addAppRow(games)
 
-            val card = makeCard(
-                app.loadLabel(packageManager).toString()
-            ) {
-                launchApp(app)
-            }
-
-            list.addView(
-                card,
-                LinearLayout.LayoutParams(-1, 75).apply {
-                    bottomMargin = 9
-                }
-            )
-        }
-
-        if (apps.isEmpty()) {
-            list.addView(
-                text(
-                    "No matching games found.",
+        if (games.isEmpty()) {
+            content.addView(
+                makeText(
+                    "No games were detected by name. Check All Apps for your games.",
                     16f,
-                    grey
+                    muted
                 )
             )
         }
-
-        scroll.addView(list)
-
-        root.addView(
-            scroll,
-            LinearLayout.LayoutParams(-1, 0, 1f)
-        )
-
-        setContentView(root)
-        back.requestFocus()
     }
 
-    // SETTINGS
-
     private fun showSettings() {
+        setupPage("Settings")
+        addHeading("Settings", "Customize your NovaOS experience")
 
-        val root = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(35, 25, 35, 25)
-            setBackgroundColor(bg)
-        }
-
-        root.addView(
-            text("Settings", 34f, white, true)
-        )
-
-        val scroll = ScrollView(this)
-
-        val list = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-        }
-
-        list.addView(
-            makeCard("← Back to NovaOS") {
-                showHome()
+        content.addView(
+            makeButton("Refresh installed apps") {
+                showSettings()
+                Toast.makeText(this, "App list refreshed", Toast.LENGTH_SHORT).show()
+            }.apply {
+                gravity = Gravity.CENTER
+            },
+            LinearLayout.LayoutParams(-1, -2).apply {
+                bottomMargin = 12
             }
         )
 
-        list.addView(
-            makeCard(
-                "Appearance",
-                "NovaOS dark theme"
-            ) {
-                Toast.makeText(
-                    this,
-                    "Dark theme is enabled",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-        )
-
-        list.addView(
-            makeCard(
-                "Refresh Apps",
-                "Reload installed TV apps"
-            ) {
-                showHome()
-            }
-        )
-
-        list.addView(
-            makeCard(
-                "Google TV",
-                "Open your original TV home screen"
-            ) {
-                val intent = Intent(Intent.ACTION_MAIN).apply {
-                    addCategory(Intent.CATEGORY_HOME)
+        content.addView(
+            makeButton("Open Android TV Settings") {
+                try {
+                    startActivity(Intent(android.provider.Settings.ACTION_SETTINGS))
+                } catch (_: Exception) {
+                    Toast.makeText(this, "Settings unavailable", Toast.LENGTH_SHORT).show()
                 }
-                startActivity(intent)
+            },
+            LinearLayout.LayoutParams(-1, -2).apply {
+                bottomMargin = 12
             }
         )
 
-        list.addView(
-            makeCard(
-                "About NovaOS",
-                "Version 3.0 • Android TV Edition"
-            ) {
+        content.addView(
+            makeButton("Open Google TV Home") {
+                openGoogleTV()
+            },
+            LinearLayout.LayoutParams(-1, -2).apply {
+                bottomMargin = 12
+            }
+        )
+
+        content.addView(
+            makeButton("About NovaOS") {
                 AlertDialog.Builder(this)
                     .setTitle("NovaOS")
                     .setMessage(
-                        "NovaOS 3.0\n\n" +
-                        "Android TV launcher prototype.\n" +
-                        "Created for Haier Google TV."
+                        "NovaOS is an Android TV launcher concept.\n\n" +
+                        "It runs on top of Android TV and does not replace Google TV or install Linux."
                     )
                     .setPositiveButton("OK", null)
                     .show()
+            },
+            LinearLayout.LayoutParams(-1, -2)
+        )
+    }
+
+    private fun openGoogleTV() {
+        try {
+            val intent = Intent(Intent.ACTION_MAIN).apply {
+                addCategory(Intent.CATEGORY_HOME)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
-        )
+            startActivity(intent)
+        } catch (_: Exception) {
+            Toast.makeText(
+                this,
+                "Android TV Home could not be opened",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
 
-        list.addView(
-            makeCard(
-                "Android Settings",
-                "Open device settings"
-            ) {
-                startActivity(
-                    Intent(Settings.ACTION_SETTINGS)
-                )
-            }
-        )
-
-        scroll.addView(list)
-
-        root.addView(
-            scroll,
-            LinearLayout.LayoutParams(-1, 0, 1f)
-        )
-
-        setContentView(root)
+    override fun onBackPressed() {
+        if (currentPage != "Home") {
+            showHome()
+        } else {
+            super.onBackPressed()
+        }
     }
 }
