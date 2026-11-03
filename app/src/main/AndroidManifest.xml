@@ -1,5 +1,5 @@
-
 <?xml version="1.0" encoding="utf-8"?>
+
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-feature
@@ -18,9 +18,10 @@
     </queries>
 
     <application
+        android:allowBackup="true"
         android:label="NovaOS"
-        android:theme="@style/NovaTheme"
-        android:usesCleartextTraffic="false">
+        android:supportsRtl="true"
+        android:theme="@style/NovaTheme">
 
         <activity
             android:name=".MainActivity"
@@ -35,4 +36,5 @@
         </activity>
 
     </application>
+
 </manifest>
